@@ -1,17 +1,24 @@
 <ion-header>
-  <ion-navbar>
+  <ion-navbar color="primary" >
     <ion-title>Home</ion-title>
   </ion-navbar>
 </ion-header>
 
 <ion-content padding>
-  <h2>Welcome to Ionic!</h2>
-  <p>
-    This starter project comes with simple tabs-based layout for apps
-    that are going to primarily use a Tabbed UI.
-  </p>
-  <p>
-    Take a look at the <code>src/pages/</code> directory to add or change tabs,
-    update any existing page or create new pages.
-  </p>
+  <h2>Students Available!</h2>
+
+  <ion-list>
+    <ion-item *ngFor="let stu of students">
+      <ion-card (click)="showPrompt(stu)">
+        <ion-card-header>
+          <b>{{stu.name}}</b>
+        </ion-card-header>
+        <ion-card-content>
+          <b>Id:</b> {{stu.id}}<br>
+          <b>Stream:</b> {{stu.stream}}
+        </ion-card-content>
+
+      </ion-card>
+    </ion-item>
+  </ion-list>
 </ion-content>
