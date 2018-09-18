@@ -8,14 +8,14 @@
   <h2>Students Available!</h2>
 
   <ion-list>
-    <ion-item *ngFor="let stu of students">
-      <ion-card (click)="showPrompt(stu)">
+    <ion-item *ngFor="let item of items">
+      <ion-card (click)="showPrompt(item)">
         <ion-card-header>
-          <b>{{stu.name}}</b>
+          <b>{{item.name}}</b>
         </ion-card-header>
         <ion-card-content>
-          <b>Id:</b> {{stu.id}}<br>
-          <b>Stream:</b> {{stu.stream}}
+          <b>Id:</b> {{item.id}}<br>
+          <b>Name:</b> {{item.name}}
         </ion-card-content>
 
       </ion-card>

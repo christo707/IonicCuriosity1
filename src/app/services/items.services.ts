@@ -3,7 +3,7 @@ import { Http, Headers, RequestOptions  } from '@angular/http';
 import 'rxjs/Rx';
 
 @Injectable()
-export class StudentsService {
+export class ItemsService {
   http: any;
   url: string;
   fetchUrl: string;
@@ -11,20 +11,20 @@ export class StudentsService {
 
   constructor(http: Http){
     this.http = http;
-    this.fetchUrl = "http://localhost:3000/students";
-    this.postUrl = "http://localhost:3000/passed"
+    this.fetchUrl = "http://localhost:3000/items";
+    this.postUrl = "http://localhost:3000/received"
   }
 
-  getStudents() {
+  getItems() {
     return this.http.get(this.fetchUrl).map(res => res.json());
   }
 
-  deleteStudent(i) {
+  deleteItem(i) {
     return this.http.delete(this.fetchUrl + "/" + i).map(res => res.json());
   }
 
-  postPassed(data: any = {}) {
-    console.log("Posting Passed: ");
+  postReceived(data: any = {}) {
+    console.log("Posting Received: ");
     var headers = new Headers();
     headers.append('Content-Type', 'application/json' );
     const requestOptions = new RequestOptions({ headers: headers });

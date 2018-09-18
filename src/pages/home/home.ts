@@ -1,33 +1,98 @@
 import { Component } from '@angular/core';
 import { NavController, AlertController } from 'ionic-angular'
-import { StudentsService } from '../../app/services/students.services';
+import { SQLite, SQLiteObject } from '@ionic-native/sqlite';
+import { ItemsService } from '../../app/services/items.services';
 
 @Component({
   selector: 'page-home',
   templateUrl: 'home.html'
 })
 export class HomePage {
-  students: any;
+  items: any;
+  sqlite: SQLite
 
-  constructor(public navCtrl: NavController, private studentsService: StudentsService, public alertCtrl: AlertController) {
+  constructor(public navCtrl: NavController, private itemsService: ItemsService, public alertCtrl: AlertController) {
 
   }
 
-  fetchStudents() {
-    this.students = [];
-    this.studentsService.getStudents().subscribe(response => {
-      this.students = response;
+  fetchitemsAndSaveLocal() {
+    this.items = [];
+    this.itemsService.getItems().subscribe(response => {
+      this.items = response;
+      this.writeData(items);
+    },error => {
+      console.log("Unable to get response from server");
+      this.fetchItemsFromDataBase();
     });
   }
 
+
   ngOnInit() {
-    this.fetchStudents();
+    this.fetchitemsAndSaveLocal();
   }
 
-  showConfirm(stu) {
+  writeData(items){
+    this.sqlite.create({
+      name: 'data.db',
+      location: 'default'
+    }).then((db: SQLiteObject) => {
+      items.forEach((item) => {
+        db.executeSql("DELETE * FROM items",{}).then((data) => {
+            console.log("Item table cleared: ", data);
+            db.executeSql("INSERT INTO items VALUES (?,?)", [ item.id, item.name ]).then((data) => {
+                console.log("Item Inserted in item table: ", data);
+            }, (error) => {
+                console.error("Unable to execute sql of insertion in item", error);
+            })
+        }, (error) => {
+            console.error("Unable to clear item table", error);
+        })
+      });
+    }, (error) => {
+        console.error("Unable to open database", error);
+    });
+  }
+
+  fetchItemsFromDataBase(){
+    this.sqlite.create({
+      name: 'data.db',
+      location: 'default'
+    }).then((db: SQLiteObject) => {
+      db.executeSql('SELECT * FROM items ORDER BY id DESC', {})
+    .then(res => {
+      console.log("Items Fetched from item table: ", res);
+      this.items = [];
+      for(var i=0; i<res.rows.length; i++) {
+        this.items.push({
+          id:res.rows.item(i).id,
+          name:res.rows.item(i).name
+        })
+      }
+    })
+    .catch(e => console.log("ERROR FETCHING ITEMS FROM LOCAL ITEMS TABLE: " + e));
+    }, (error) => {
+        console.error("Unable to open database", error);
+    });
+  }
+
+  deleteItemFromDatabase(id) {
+  this.sqlite.create({
+    name: 'data.db',
+    location: 'default'
+  }).then((db: SQLiteObject) => {
+    db.executeSql('DELETE FROM items WHERE id=?', [id])
+    .then(res => {
+      this.items.splice(id,1);
+      console.log("ITEM DELETED with id " + id + " : " + res);
+    })
+    .catch(e => console.log(e));
+  }).catch(e => console.log(e));
+}
+
+  showConfirm(item) {
     const alert = this.alertCtrl.create({
-      title: 'Student Passed!',
-      subTitle: stu.name + " with Roll Number: " + stu.roll + " Passed.",
+      title: 'Item Received!',
+      subTitle: item.name + " with Quantity: " + item.quantity + " Received.",
       buttons: ['OK']
     });
     alert.present();
@@ -42,15 +107,15 @@ export class HomePage {
     alert.present();
   }
 
-  showPrompt(student) {
-    console.log(student);
+  showPrompt(item) {
+    console.log(item);
     const prompt = this.alertCtrl.create({
-      title: 'Passing Confirmation',
-      message: "Enter roll number for " + student.name + " of " + student.stream + " Stream to confirm Passing",
+      title: 'Receive Item',
+      message: "Enter quantity for " + item.name  + " to confirm Received.",
       inputs: [
         {
-          name: 'Roll',
-          placeholder: 'Roll Number'
+          name: 'quantity',
+          placeholder: 'Quantity'
         },
       ],
       buttons: [
@@ -63,14 +128,14 @@ export class HomePage {
         {
           text: 'Save',
           handler: data => {
-            student = {...student, roll: data.Roll};
+            item = {...item, quantity: data.quantity};
             console.log('Saved clicked');
-            this.studentsService.postPassed(student).subscribe(response => {
+            this.itemsService.postReceived(item).subscribe(response => {
               if(response!= null){
-                this.showConfirm(student);
-                this.studentsService.deleteStudent(student.id).subscribe(response => {
-                  console.log('Student deleted from fetch');
-                  this.fetchStudents();
+                this.showConfirm(item);
+                this.itemsService.deleteItem(item.id).subscribe(response => {
+                  console.log('Item PO deleted from server');
+                  deleteItemFromDatabase(item.id);
                 });
               }
             }, error => {
