@@ -11,15 +11,18 @@ export class HomePage {
   items: any;
   sqlite: SQLite
 
-  constructor(public navCtrl: NavController, private itemsService: ItemsService, public alertCtrl: AlertController) {
-
+  constructor(public navCtrl: NavController,
+     private itemsService: ItemsService,
+     public alertCtrl: AlertController,
+     sqlite : SQLite) {
+       this.sqlite = sqlite;
   }
 
   fetchitemsAndSaveLocal() {
     this.items = [];
     this.itemsService.getItems().subscribe(response => {
       this.items = response;
-      this.writeData(items);
+      this.writeData(this.items);
     },error => {
       console.log("Unable to get response from server");
       this.fetchItemsFromDataBase();
@@ -31,22 +34,24 @@ export class HomePage {
     this.fetchitemsAndSaveLocal();
   }
 
-  writeData(items){
+  writeData(itemList){
     this.sqlite.create({
       name: 'data.db',
       location: 'default'
     }).then((db: SQLiteObject) => {
-      items.forEach((item) => {
-        db.executeSql("DELETE * FROM items",{}).then((data) => {
-            console.log("Item table cleared: ", data);
+      console.log(itemList);
+      db.executeSql("delete from items",{} as any).then((data) => {
+      console.log("Item table cleared: ", data);
+      itemList.forEach((item) => {
+        console.log(item);
             db.executeSql("INSERT INTO items VALUES (?,?)", [ item.id, item.name ]).then((data) => {
                 console.log("Item Inserted in item table: ", data);
             }, (error) => {
                 console.error("Unable to execute sql of insertion in item", error);
             })
-        }, (error) => {
-            console.error("Unable to clear item table", error);
         })
+      }, (error) => {
+          console.error("Unable to clear item table", error);
       });
     }, (error) => {
         console.error("Unable to open database", error);
@@ -58,7 +63,7 @@ export class HomePage {
       name: 'data.db',
       location: 'default'
     }).then((db: SQLiteObject) => {
-      db.executeSql('SELECT * FROM items ORDER BY id DESC', {})
+      db.executeSql('SELECT * FROM items ORDER BY id DESC',{} as any)
     .then(res => {
       console.log("Items Fetched from item table: ", res);
       this.items = [];
@@ -83,6 +88,7 @@ export class HomePage {
     db.executeSql('DELETE FROM items WHERE id=?', [id])
     .then(res => {
       this.items.splice(id,1);
+      
       console.log("ITEM DELETED with id " + id + " : " + res);
     })
     .catch(e => console.log(e));
@@ -132,10 +138,11 @@ export class HomePage {
             console.log('Saved clicked');
             this.itemsService.postReceived(item).subscribe(response => {
               if(response!= null){
-                this.showConfirm(item);
+
                 this.itemsService.deleteItem(item.id).subscribe(response => {
                   console.log('Item PO deleted from server');
-                  deleteItemFromDatabase(item.id);
+                  this.deleteItemFromDatabase(item.id);
+                  this.showConfirm(item);
                 });
               }
             }, error => {

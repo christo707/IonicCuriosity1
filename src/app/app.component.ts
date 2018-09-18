@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { Platform, Events } from 'ionic-angular';
 import { SQLite, SQLiteObject } from '@ionic-native/sqlite';
+import { Network } from '@ionic-native/network';
 import { StatusBar } from '@ionic-native/status-bar';
 import { SplashScreen } from '@ionic-native/splash-screen';
 import { ItemsService } from './services/items.services';
@@ -9,7 +10,7 @@ import { TabsPage } from '../pages/tabs/tabs';
 
 @Component({
   templateUrl: 'app.html',
-  providers: [ ItemsService ]
+  providers: [ ItemsService, NetworkProvider ]
 })
 export class MyApp {
   rootPage:any = TabsPage;
@@ -32,7 +33,7 @@ export class MyApp {
         name: 'data.db',
         location: 'default'
       }).then((db: SQLiteObject) => {
-          db.executeSql("CREATE TABLE IF NOT EXISTS items (id INTEGER PRIMARY KEY, name TEXT)", {}).then((data) => {
+          db.executeSql("CREATE TABLE IF NOT EXISTS items (id INTEGER PRIMARY KEY, name TEXT)", {} as any).then((data) => {
               console.log("Item TABLE CREATED: ", data);
           }, (error) => {
               console.error("Unable to execute sql", error);
@@ -43,16 +44,16 @@ export class MyApp {
 
       splashScreen.hide();
 
-      this.networkProvider.initializeNetworkEvents();
+      networkProvider.initializeNetworkEvents();
 
       // Offline event
-			this.events.subscribe('network:offline', () => {
-			     alert('network:offline ==> '+this.network.type);
+			events.subscribe('network:offline', () => {
+			     alert('network:offline ==> '+ network.type);
 		  });
 
 	    // Online event
-			this.events.subscribe('network:online', () => {
-			     alert('network:online ==> '+this.network.type);
+			events.subscribe('network:online', () => {
+			     alert('network:online ==> '+ network.type);
 			});
 
     });
