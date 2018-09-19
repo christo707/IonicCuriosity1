@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { NavController, AlertController } from 'ionic-angular'
 import { SQLite, SQLiteObject } from '@ionic-native/sqlite';
 import { ItemsService } from '../../app/services/items.services';
+import { Network } from '@ionic-native/network';
 
 @Component({
   selector: 'page-home',
@@ -9,20 +10,28 @@ import { ItemsService } from '../../app/services/items.services';
 })
 export class HomePage {
   items: any;
-  sqlite: SQLite
+  sqlite: SQLite;
+  network: any;
 
   constructor(public navCtrl: NavController,
      private itemsService: ItemsService,
      public alertCtrl: AlertController,
+     public network: Network,
      sqlite : SQLite) {
        this.sqlite = sqlite;
+       this.network = network;
+  }
+
+  isConnected(): boolean {
+    let conntype = this.network.type;
+    return conntype && conntype !== 'unknown' && conntype !== 'none';
   }
 
   fetchitemsAndSaveLocal() {
     this.items = [];
     this.itemsService.getItems().subscribe(response => {
-      this.items = response;
       this.writeData(this.items);
+      this.items = response;
     },error => {
       console.log("Unable to get response from server");
       this.fetchItemsFromDataBase();
@@ -63,7 +72,7 @@ export class HomePage {
       name: 'data.db',
       location: 'default'
     }).then((db: SQLiteObject) => {
-      db.executeSql('SELECT * FROM items ORDER BY id DESC',{} as any)
+      db.executeSql('SELECT * FROM items',{} as any)
     .then(res => {
       console.log("Items Fetched from item table: ", res);
       this.items = [];
@@ -80,6 +89,31 @@ export class HomePage {
     });
   }
 
+  writeItemInDraft(item){
+    this.sqlite.create({
+      name: 'data.db',
+      location: 'default'
+    }).then((db: SQLiteObject) => {
+      db.executeSql("INSERT INTO drafts VALUES (?,?,?)", [ item.id, item.name, item.quantity ]).then((data) => {
+          console.log("Item Inserted in drafts table: ", data);
+      }, (error) => {
+          console.error("Unable to execute sql of insertion in drafts", error);
+      })
+    }, (error) => {
+        console.error("Unable to open database", error);
+    });
+  }
+
+  removeFromArray(id){
+    for(var i=0; i < this.items.length; i++) {
+      if(this.items[i].id == id)
+   {
+      this.items.splice(i,1);
+      break;
+   }
+}
+  }
+
   deleteItemFromDatabase(id) {
   this.sqlite.create({
     name: 'data.db',
@@ -87,12 +121,14 @@ export class HomePage {
   }).then((db: SQLiteObject) => {
     db.executeSql('DELETE FROM items WHERE id=?', [id])
     .then(res => {
-      this.items.splice(id,1);
-      
+      this.removeFromArray(id);
       console.log("ITEM DELETED with id " + id + " : " + res);
     })
     .catch(e => console.log(e));
-  }).catch(e => console.log(e));
+  }).catch(e => {console.log("Delete cannot open database" + e); // Remove this
+  this.removeFromArray(id);
+  console.log(this.items);
+});
 }
 
   showConfirm(item) {
@@ -104,10 +140,10 @@ export class HomePage {
     alert.present();
   }
 
-  showError() {
+  showError(msg) {
     const alert = this.alertCtrl.create({
       title: 'Fail!',
-      subTitle: "Internal Error",
+      subTitle: msg,
       buttons: ['OK']
     });
     alert.present();
@@ -138,7 +174,6 @@ export class HomePage {
             console.log('Saved clicked');
             this.itemsService.postReceived(item).subscribe(response => {
               if(response!= null){
-
                 this.itemsService.deleteItem(item.id).subscribe(response => {
                   console.log('Item PO deleted from server');
                   this.deleteItemFromDatabase(item.id);
@@ -146,7 +181,8 @@ export class HomePage {
                 });
               }
             }, error => {
-              this.showError();
+              this.writeItemInDraft(item);
+              this.showError("Saved In Drafts");
             });
           }
         }
