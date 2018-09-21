@@ -13,8 +13,8 @@ export class ItemsService {
     this.http = http;
   //  this.fetchUrl = "https://my-json-server.typicode.com/christo707/FakeJsonServer/items";
   //  this.postUrl = "https://my-json-server.typicode.com/christo707/FakeJsonServer/received"
-      this.fetchUrl = "http://localhost:3000/items";
-      this.postUrl = "http://localhost:3000/received";
+      this.fetchUrl = "http://10.0.2.2:3000/items";
+      this.postUrl = "http://10.0.2.2:3000/received";
   }
 
   getItems() {

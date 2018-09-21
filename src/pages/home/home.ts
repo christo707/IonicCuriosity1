@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { NavController, AlertController } from 'ionic-angular'
+import { NavController, AlertController, Events} from 'ionic-angular'
 import { SQLite, SQLiteObject } from '@ionic-native/sqlite';
 import { ItemsService } from '../../app/services/items.services';
 import { Network } from '@ionic-native/network';
@@ -16,7 +16,8 @@ export class HomePage {
   constructor(public navCtrl: NavController,
      private itemsService: ItemsService,
      public alertCtrl: AlertController,
-     public network: Network,
+     public events: Events,
+     network: Network,
      sqlite : SQLite) {
        this.sqlite = sqlite;
        this.network = network;
@@ -30,8 +31,8 @@ export class HomePage {
   fetchitemsAndSaveLocal() {
     this.items = [];
     this.itemsService.getItems().subscribe(response => {
-      this.writeData(this.items);
       this.items = response;
+      this.writeData(this.items);
     },error => {
       console.log("Unable to get response from server");
       this.fetchItemsFromDataBase();
@@ -61,6 +62,17 @@ export class HomePage {
         })
       }, (error) => {
           console.error("Unable to clear item table", error);
+          if(itemList.length > 0){
+            itemList.forEach((item) => {
+              console.log(item);
+                  db.executeSql("INSERT INTO items VALUES (?,?)", [ item.id, item.name ]).then((data) => {
+                      console.log("Item Inserted in item table: ", data);
+                  }, (error) => {
+                      console.error("Unable to execute sql of insertion in item", error);
+                  })
+              })
+          }
+
       });
     }, (error) => {
         console.error("Unable to open database", error);
@@ -95,6 +107,7 @@ export class HomePage {
       location: 'default'
     }).then((db: SQLiteObject) => {
       db.executeSql("INSERT INTO drafts VALUES (?,?,?)", [ item.id, item.name, item.quantity ]).then((data) => {
+          this.removeFromArray(item.id);
           console.log("Item Inserted in drafts table: ", data);
       }, (error) => {
           console.error("Unable to execute sql of insertion in drafts", error);
@@ -125,9 +138,7 @@ export class HomePage {
       console.log("ITEM DELETED with id " + id + " : " + res);
     })
     .catch(e => console.log(e));
-  }).catch(e => {console.log("Delete cannot open database" + e); // Remove this
-  this.removeFromArray(id);
-  console.log(this.items);
+  }).catch(e => {console.log("Delete cannot open database" + e);
 });
 }
 
@@ -148,6 +159,7 @@ export class HomePage {
     });
     alert.present();
   }
+
 
   showPrompt(item) {
     console.log(item);
@@ -182,6 +194,8 @@ export class HomePage {
               }
             }, error => {
               this.writeItemInDraft(item);
+              this.deleteItemFromDatabase(item.id);
+              this.events.publish('draft:created');
               this.showError("Saved In Drafts");
             });
           }

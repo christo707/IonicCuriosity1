@@ -10,14 +10,14 @@ import { NetworkProvider } from '../../app/services/network.services';
   templateUrl: 'drafts.html'
 })
 export class DraftsPage {
-  drafts: any;
+  public drafts: any;
   sqlite: SQLite;
   network: any;
 
   constructor(public navCtrl: NavController,
      private itemsService: ItemsService,
      public alertCtrl: AlertController,
-     public network: Network,
+     network: Network,
      public networkProvider: NetworkProvider,
      public events: Events,
      sqlite : SQLite) {
@@ -26,8 +26,44 @@ export class DraftsPage {
 
        // Online event
        events.subscribe('network:online', () => {
-            this.pushDrafts();
+       console.log("In Push Drafts");
+       this.sqlite.create({
+         name: 'data.db',
+         location: 'default'
+       }).then((db: SQLiteObject) => {
+         db.executeSql('SELECT * FROM drafts',{} as any)
+       .then(res => {
+         console.log("Items Fetched from Drafts table: ", res);
+         for(var i=0; i < res.rows.length; i++) {
+
+           let draft = {
+             id: res.rows.item(i).id,
+             name: res.rows.item(i).name,
+             quantity: res.rows.item(i).quantity
+           };
+
+           this.itemsService.postReceived(draft).subscribe(response => {
+             if(response!= null){
+               this.itemsService.deleteItem(draft.id).subscribe(response => {
+                 console.log('Draft PO deleted from server');
+                 this.deleteItemFromDraftsDatabase(draft.id);
+                 this.removeFromDraftsArray(draft.id);
+               });
+             }
+           }, error => {
+           console.log("Cannot Upload Draft with ID: " + draft.id);
+           });
+         }
+       })
+       .catch(e => console.log("ERROR FETCHING ITEMS FROM LOCAL Drafts TABLE: " + e));
+       }, (error) => {
+           console.error("Unable to open database", error);
        });
+     });
+
+     events.subscribe('draft:created', () => {
+      this.fetchitemsAndSaveLocal();
+     })
 
   }
 
@@ -75,23 +111,6 @@ export class DraftsPage {
 }
   }
 
-  deleteItemFromDatabase(id) {
-  this.sqlite.create({
-    name: 'data.db',
-    location: 'default'
-  }).then((db: SQLiteObject) => {
-    db.executeSql('DELETE FROM drafts WHERE id=?', [id])
-    .then(res => {
-      this.removeFromDraftsArray(id);
-      console.log("DRAFT DELETED with id " + id + " : " + res);
-    })
-    .catch(e => console.log(e));
-  }).catch(e => {console.log("Delete Draft cannot open database" + e); // Remove this
-  this.removeFromDraftsArray(id);
-  console.log(this.items);
-});
-}
-
 deleteItemFromDraftsDatabase(id) {
 this.sqlite.create({
   name: 'data.db',
@@ -99,17 +118,16 @@ this.sqlite.create({
 }).then((db: SQLiteObject) => {
   db.executeSql('DELETE FROM drafts WHERE id=?', [id])
   .then(res => {
-    this.removeFromArray(id);
+    this.removeFromDraftsArray(id);
     console.log("DRAFT DELETED with id " + id + " : " + res);
   })
   .catch(e => console.log(e));
-}).catch(e => {console.log("Delete cannot open draft database" + e); // Remove this
-this.removeFromArray(id);
-console.log(this.items);
+}).catch(e => {console.log("Delete cannot open draft database" + e);
 });
 }
 
 pushDrafts() {
+  console.log("In Push Drafts");
   this.sqlite.create({
     name: 'data.db',
     location: 'default'
@@ -129,8 +147,8 @@ pushDrafts() {
         if(response!= null){
           this.itemsService.deleteItem(draft.id).subscribe(response => {
             console.log('Draft PO deleted from server');
-            this.deleteItemFromDraftsDatabase(drafts.id);
-            this.removeFromDraftsArray(drafts.id);
+            this.deleteItemFromDraftsDatabase(draft.id);
+            this.removeFromDraftsArray(draft.id);
           });
         }
       }, error => {

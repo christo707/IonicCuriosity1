@@ -19,8 +19,13 @@ export class NetworkProvider {
 
     console.log('Hello NetworkProvider Provider');
 
-    this.previousStatus = ConnectionStatusEnum.Online;
+    let conntype = this.network.type;
+    let status = conntype && conntype !== 'unknown' && conntype !== 'none';
 
+    if(status)
+      this.previousStatus = ConnectionStatusEnum.Online;
+    else
+      this.previousStatus = ConnectionStatusEnum.Offline;
   }
 
     public initializeNetworkEvents(): void {
