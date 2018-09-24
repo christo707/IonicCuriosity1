@@ -44,6 +44,14 @@ export class HomePage {
     this.fetchitemsAndSaveLocal();
   }
 
+  doRefresh(refresher) {
+    console.log('Begin async operation of refreshing Home Page');
+    setTimeout(() => {
+      this.fetchitemsAndSaveLocal();
+      refresher.complete();
+    }, 2000);
+  }
+
   writeData(itemList){
     this.sqlite.create({
       name: 'data.db',

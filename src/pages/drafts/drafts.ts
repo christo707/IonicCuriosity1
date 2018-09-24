@@ -101,6 +101,14 @@ export class DraftsPage {
     this.fetchitemsAndSaveLocal();
   }
 
+  doRefresh(refresher) {
+    console.log('Begin async operation of refreshing Draft Page');
+    setTimeout(() => {
+      this.fetchitemsAndSaveLocal();
+      refresher.complete();
+    }, 2000);
+  }
+
   removeFromDraftsArray(id){
     for(var i=0; i < this.drafts.length; i++) {
       if(this.drafts[i].id == id)
