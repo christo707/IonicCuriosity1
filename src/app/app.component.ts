@@ -47,10 +47,6 @@ export class MyApp {
       }, (error) => {
           console.error("Unable to open database", error);
       });
-
-
-      splashScreen.hide();
-
       networkProvider.initializeNetworkEvents();
 
       // Offline event
@@ -74,7 +70,7 @@ export class MyApp {
            });
            alert.present();
 			});
-
+  splashScreen.hide();
     });
   }
 }
